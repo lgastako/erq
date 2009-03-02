@@ -4,6 +4,7 @@ import memcache
 import optparse
 import time
 
+
 def generate_test_payload(size):
     return "x" * size
 
@@ -27,6 +28,8 @@ def main():
     
     test_payload = generate_test_payload(options.payload_size)
 
+    total_data_in_mbs = (options.payload_size * options.num_messages) / 1024
+
     errors = 0
     start = time.time()
     for i in range(options.num_messages):
@@ -34,7 +37,7 @@ def main():
             errors += 1
     end = time.time()
     diff = end - start
-    print "Writing %d messages of size %d took %0.3f seconds - %0.3f m/s (with %d errors)" % (options.num_messages, options.payload_size, diff, (options.num_messages/diff), errors)
+    print "Writing %d messages of size %d took %0.3f seconds - %0.3f msg/s - %0.3f MB/s (with %d errors)" % (options.num_messages, options.payload_size, diff, (options.num_messages/diff), (total_data_in_mbs/diff), errors)
 
     responses = []
     start = time.time()
@@ -42,7 +45,7 @@ def main():
         responses.append(mc.get("foo"))
     end = time.time()
     diff = end - start
-    print "Reading %d messages took %0.3f seconds - %0.3f m/s" % (options.num_messages, diff, (options.num_messages/diff))
+    print "Reading %d messages took %0.3f seconds - %0.3f m/s - %0.3f MB/s" % (options.num_messages, diff, (options.num_messages/diff), (total_data_in_mbs/diff))
 
     print "Checking response correctness."
 
