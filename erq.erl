@@ -1,5 +1,12 @@
 -module(erq).
--export([start/0]).
+-export([start/0, start/1]).
+
+-define(DEFAULT_PORT, 2345).
+
+%%-define(debug(_, _), ok).
+%%-define(debug(Format, Args), io:format("DEBUG: " ++ Format, Args), ok).
+debug(_, _) -> ok.
+%%debug(Format, Args) -> io:format("DEBUG: " ++ Format, Args), ok.
 
 %% Remove trailing \r's and \n's from a string.  Probably better ways to do this in
 %% erlang, but for now, this works.
@@ -17,8 +24,9 @@ chomp(S) ->
 %% Helper for display socket options for debug purposes.
 %% TODO: Remove me once everything is working.
 report_socket_opts(_Socket, _Message) ->
-%%    io:format("Socket options (~p): ~p~n", [Message, inet:getopts(Socket, inet:options())]).
-    io:format("socket reporting supressed...").
+%%    debug("Socket options (~p): ~p~n", [Message, inet:getopts(Socket, inet:options())]).
+    debug("socket reporting supressed...", []),
+    ok.
 
 
 %% Read a line of data from the socket, for the control messages (get, set, etc).
@@ -43,7 +51,11 @@ read_fixed_data(Socket, Size) ->
 
 
 start() ->
-    {ok, Listen} = gen_tcp:listen(2345, [list, {reuseaddr, true}, {packet, line}]),
+    start(?DEFAULT_PORT).
+
+
+start(Port) ->
+    {ok, Listen} = gen_tcp:listen(Port, [list, {reuseaddr, true}, {packet, line}]),
     spawn(fun() -> serve(Listen) end),
     self().
 
@@ -55,7 +67,8 @@ serve(Listen) ->
 
 
 manage_queue(Q) ->
-    io:format("Q is now length ~p and contains: ~p~n", [queue:len(Q), Q]),
+%%    debug("Q is now length ~p and contains: ~p~n", [queue:len(Q), Q]),
+    debug("Q is now length ~p.", [queue:len(Q)]),
     receive
         {add, Item, Pid} ->
             NewQ = queue:cons(Item, Q),
@@ -114,12 +127,14 @@ formulate_response(Header, Data) ->
 handle_set(Args, Socket) ->
     [QueueName, _FlagsString, _ExpiryString, SizeString] = Args,
     Size = list_to_integer(SizeString),
-    io:format("Reading data of size ~p.~n", [Size]),
+    debug("Reading data of size ~p.~n", [Size]),
     case read_fixed_data(Socket, Size) of
         {ok, Data} ->
             case enqueue(QueueName, Data) of
-                ack -> "set succeeded.\r\n";
-                _ -> "set failed.\r\n"
+                ack -> "STORED\r\n";
+                {error, ErrorMessage} -> lists:flatten(io_lib:format("SERVER_ERROR ~p\r\n",
+                                                                     [ErrorMessage]));
+                _ -> "SERVER_ERROR invalid response from queue process\r\n"
             end;
         Other -> io:format("Got other, dunno what to do: ~p~n", [Other])
     end.
@@ -127,12 +142,12 @@ handle_set(Args, Socket) ->
 
 handle_get(Args) ->
     [QueueName] = Args,
-    io:format("get requested from queue: ~p~n", [QueueName]),
+    debug("get requested from queue: ~p~n", [QueueName]),
     case dequeue(QueueName) of
         {ok, Data} ->
             formulate_response(io_lib:format("VALUE ~s 0 ~.10B\r\n",
                                              [QueueName, length(Data)]), Data);
-        _ -> "error."
+        _ -> "ERROR\r\n" %% should we use SERVER_ERROR with a message?
     end.
 
 
@@ -140,18 +155,19 @@ loop(Socket) ->
     case read_line_of_data(Socket) of
         {ok, StrWithNewline} ->
             Str = chomp(StrWithNewline),
-            io:format("Server received: = ~p~n", [Str]),
+            debug("Server received: = ~p~n", [Str]),
             [Command|Args] = string:tokens(Str, " "),
-            io:format("command: ~p~n", [Command]),
+            debug("command: ~p~n", [Command]),
             Response = case Command of
                 "get" -> handle_get(Args);
                 "set" -> handle_set(Args, Socket);
-                _ -> "unknown command.\r\n"
+                _ -> "ERROR\r\n"
             end,
             gen_tcp:send(Socket, Response),
             loop(Socket);
         {tcp_closed, Socket} ->
-            io:format("Server socket closed~n");
+            debug("Server socket closed~n", []);
+        {error, closed} -> {ok, closed};
         Thing ->
             io:format("Dunno whats going on: ~p~n", [Thing])
     end.
