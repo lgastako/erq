@@ -35,10 +35,6 @@ serve(Listen) ->
     loop(Socket).
 
 
-formulate_response(Header, Data) ->
-    lists:flatten(Header ++ Data  ++ "\r\nEND\r\n").
-
-
 handle_set(Args, Socket) ->
     [QueueName, _FlagsString, _ExpiryString, SizeString] = Args,
     Size = list_to_integer(SizeString),
@@ -60,8 +56,8 @@ handle_get(Args) ->
     erqutils:debug("get requested from queue: ~p~n", [QueueName]),
     case erqueue:dequeue(QueueName) of
         {ok, Data} ->
-            formulate_response(io_lib:format("VALUE ~s 0 ~.10B\r\n",
-                                             [QueueName, length(Data)]), Data) ++ "END\r\n";
+            lists:flatten(io_lib:format("VALUE ~s 0 ~.10B\r\n",
+                                        [QueueName, length(Data)]) ++ Data ++ "\r\nEND\r\n");
         {empty} -> "END\r\n";
         _ -> "ERROR\r\n" %% should we use SERVER_ERROR with a message?
     end.
