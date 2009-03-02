@@ -1,0 +1,7 @@
+- Figure out why the first connection after a restart fails.  WTF?
+- Get protocol working identically to kestrel so I can test against both.
+  - So far so good.
+- Implement persistence via amnesia.
+- Implement all the goofy extensions that Robey implemented.
+- Implement any applicable config options from Kestrel.
+ 
