@@ -17,8 +17,8 @@ def main():
                       default="2345")
     parser.add_option("-s", "--payload-size", help="specify the payload size (default=512)",
                       metavar="SIZE", default="512")
-    parser.add_option("-n", "--num-messages", help="specify the number of messages (default=1000)",
-                      metavar="NUM", default="1000")
+    parser.add_option("-n", "--num-messages", help="specify the number of messages (default=1024)",
+                      metavar="NUM", default="1024")
     options, args = parser.parse_args()
 
     mc = memcache.Client([':'.join([options.host, options.port])], debug=0)
@@ -37,7 +37,7 @@ def main():
             errors += 1
     end = time.time()
     diff = end - start
-    print "Writing %d messages of size %d took %0.3f seconds - %0.3f msg/s - %0.3f MB/s (with %d errors)" % (options.num_messages, options.payload_size, diff, (options.num_messages/diff), (total_data_in_mbs/diff), errors)
+    print "Writing %d messages of size %d took %0.3f seconds - %0.3f msg/s - %0.3f MB/s (with %d errors)" % (options.num_messages, options.payload_size, diff, (options.num_messages/diff), (total_data_in_mbs/diff/1024), errors)
 
     responses = []
     start = time.time()
@@ -45,7 +45,7 @@ def main():
         responses.append(mc.get("foo"))
     end = time.time()
     diff = end - start
-    print "Reading %d messages took %0.3f seconds - %0.3f m/s - %0.3f MB/s" % (options.num_messages, diff, (options.num_messages/diff), (total_data_in_mbs/diff))
+    print "Reading %d messages took %0.3f seconds - %0.3f m/s - %0.3f MB/s" % (options.num_messages, diff, (options.num_messages/diff), (total_data_in_mbs/diff/1024))
 
     print "Checking response correctness."
 
