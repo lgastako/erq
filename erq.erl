@@ -47,7 +47,8 @@ handle_set(Args, Socket) ->
                                                                      [ErrorMessage]));
                 _ -> "SERVER_ERROR invalid response from queue process\r\n"
             end;
-        Other -> io:format("Got other, dunno what to do: ~p~n", [Other])
+        Result ->
+            erqutils:unexpected_result(Result, "from read_fixed_data in handle_set")
     end.
 
 

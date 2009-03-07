@@ -21,7 +21,10 @@ setup_queue(QueueName) ->
             {ok, Items} ->
                 erqutils:debug("Got ~p journal items to replay.", [length(Items)]),
                 replay_journal_items(Items, queue:new());
-            {error, Reason} -> {error, Reason}
+            {error, Reason} -> {error, Reason};
+            Result ->
+                erqutils:unexpected_result(Result, "from journal:replay in mqueue:setup_queue"),
+                Result
         end,
     manage_queue(QueueName, Q).
 
@@ -37,8 +40,8 @@ replay_journal_item(Item, Q) ->
                 true -> Q;
                 false -> queue:init(Q)
             end;
-        Other ->
-            io:format("Got unexpected case in replay: ~p", [Other])
+        Result ->
+            erqutils:unexpected_result(Result, "Item in replay_journal_item")
     end.
 
 
@@ -71,8 +74,8 @@ manage_queue(QueueName, Q) ->
                     journal:dequeue(QueueName),
                     Result = {ok, queue:last(Q)}
             end;
-        Other ->
-            io:format("ERROR! Could not handle msg: ~p", [Other]),
+        Result ->
+            erqutils:unexpected_result(Result, "receive in mqueue:manage_queue"),
             Pid = -1,
             Result = {error, "could not handle msg"},
             NewQ = Q

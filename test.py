@@ -19,6 +19,8 @@ def main():
                       metavar="SIZE", default="512")
     parser.add_option("-n", "--num-messages", help="specify the number of messages (default=1024)",
                       metavar="NUM", default="1024")
+    parser.add_option("-q", "--queue_name", help="specify the name of the queue to use for testing",
+                      metavar="QUEUE_NAME", default="hurley")
     options, args = parser.parse_args()
 
     mc = memcache.Client([':'.join([options.host, options.port])], debug=0)
@@ -33,7 +35,7 @@ def main():
     errors = 0
     start = time.time()
     for i in range(options.num_messages):
-        if not mc.set("foo", test_payload):
+        if not mc.set(options.queue_name, test_payload):
             errors += 1
     end = time.time()
     diff = end - start
@@ -42,7 +44,7 @@ def main():
     responses = []
     start = time.time()
     for i in range(options.num_messages):
-        responses.append(mc.get("foo"))
+        responses.append(mc.get(options.queue_name))
     end = time.time()
     diff = end - start
     print "Reading %d messages took %0.3f seconds - %0.3f m/s - %0.3f MB/s" % (options.num_messages, diff, (options.num_messages/diff), (total_data_in_mbs/diff/1024))

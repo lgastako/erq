@@ -30,9 +30,12 @@ replay(QueueName) ->
     erqutils:debug("Replaying journal items for queue: ~p", [QueueName]),
     JournalPath = journal_path(QueueName),
     case file:consult(JournalPath) of
-        {ok, Terms} -> {ok, Terms};
-        Other ->
-            io:format("Unexpected response while reading journal file: ~p", [Other])
+        {ok, Terms} ->
+            {ok, Terms};
+        {error, enoent} ->
+            {ok, []};
+        Result ->
+            erqutils:unexpected_result(Result, "from file:consult in journal:replay")
     end.
 
 
@@ -65,7 +68,7 @@ manage_journal(File) ->
             write_term(File, get),
             %% TODO: Actually check results
             ReplyPid ! ok;
-        Other ->
-            io:format("Unexpected message: ~p~n", [Other])
+        Result ->
+            erqutils:unexpected_result(Result, "receive in journal:manage_journal")
     end,
     manage_journal(File).
