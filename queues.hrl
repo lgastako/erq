@@ -1,1 +1,0 @@
--record(message, {queue_name, data, flags}).
