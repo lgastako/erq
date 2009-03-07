@@ -12,13 +12,17 @@ get_queue_pid(QueueName) ->
 
 
 setup_queue(QueueName) ->
+    erqutils:debug("Setting up queue: ~p", [QueueName]),
     manage_queue(QueueName,
                  replay_journal_items(journal:replay(QueueName),
                                       queue:new())).
 
 
-replay_journal_items([], Q) -> Q;
+replay_journal_items([], Q) ->
+    erqutils:debug("Done with replay.", []),
+    Q;
 replay_journal_items([Head|Tail], Q) ->
+    erqutils:debug("Replaying ~p more journal items.", [lists:length(Tail) + 1]),
     replay_journal_items(Tail, queue:cons(Q, Head)).
 
 

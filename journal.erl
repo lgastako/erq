@@ -1,5 +1,5 @@
 -module(journal).
--export([enqueue/2, dequeue/1]).
+-export([enqueue/2, dequeue/1, replay/1]).
 
 
 enqueue(QueueName, Data) ->
@@ -26,10 +26,18 @@ journal_path(QueueName) ->
 
 
 replay(QueueName) ->
-    {ok, File} = file:open(journal_path(QueueName), read),
-    {ok, Terms} = file:consult(File),
-    file:close(File),
-    Terms.
+    erqutils:debug("Replaying journal items for queue: ~p", [QueueName]),
+    case file:open(journal_path(QueueName), read) of
+        {ok, File} ->
+            {ok, Terms} = file:consult(File),
+            file:close(File),
+            {ok, Terms};
+        {error, enoent} ->
+            {ok, []};
+        {error, Reason} ->
+            io:format("Could not open journal for reason: ~p", [Reason]),
+            {error, Reason}
+    end.
 
 
 get_journal_pid(QueueName) ->
