@@ -179,3 +179,7 @@ happened to interfere more during my Kestrel tests than during my erq
 tests, so I will hold off on doing any further tests until I can have
 a nice clean test environment.
 
+UPDATE: Oops, for the two concurrent tests of erq done above I did not
+pass the -smp option to the emulator.  I will correct this when I get
+a chance to do more tests in a clean environment.
+
