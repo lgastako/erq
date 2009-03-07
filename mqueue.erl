@@ -57,8 +57,11 @@ manage_queue(QueueName, Q) ->
 
 
 enqueue(QueueName, Data) ->
+    erqutils:debug("mqueue:enqueue(~p, ~p)", [QueueName, Data]),
     QueuePid = get_queue_pid(QueueName),
+    erqutils:debug("mqueue:enqueue :: got QueuePid: ~p", [QueuePid]),
     QueuePid ! {add, Data, self()},
+    erqutils:debug("mqueue:enqueue :: waiting for response...", []),
     receive
         X -> X
     end.
