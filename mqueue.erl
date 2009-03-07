@@ -84,7 +84,7 @@ manage_queue(QueueName, Q) ->
         Pid =/= -1 ->
             Pid ! Result
     end,
-    mqueue:manage_queue(QueueName, NewQ).
+    manage_queue(QueueName, NewQ).
 
 
 enqueue(QueueName, Data) ->
