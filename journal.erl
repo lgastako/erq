@@ -3,6 +3,7 @@
 
 
 enqueue(QueueName, Data) ->
+    erqutils:debug("journal:enqueue(~p, ~p)", [QueueName, Data]),
     JournalPid = get_journal_pid(QueueName),
     JournalPid ! {set, Data, self()},
     %% I bet you can just use "receive" as the last statement. TODO: Try this.
@@ -27,16 +28,11 @@ journal_path(QueueName) ->
 
 replay(QueueName) ->
     erqutils:debug("Replaying journal items for queue: ~p", [QueueName]),
-    case file:open(journal_path(QueueName), read) of
-        {ok, File} ->
-            {ok, Terms} = file:consult(File),
-            file:close(File),
-            {ok, Terms};
-        {error, enoent} ->
-            {ok, []};
-        {error, Reason} ->
-            io:format("Could not open journal for reason: ~p", [Reason]),
-            {error, Reason}
+    JournalPath = journal_path(QueueName),
+    case file:consult(JournalPath) of
+        {ok, Terms} -> {ok, Terms};
+        Other ->
+            io:format("Unexpected response while reading journal file: ~p", [Other])
     end.
 
 
@@ -44,13 +40,14 @@ get_journal_pid(QueueName) ->
     JournalNameAtom = list_to_atom("journal:" ++ QueueName),
     case whereis(JournalNameAtom) of
         undefined -> register(JournalNameAtom,
-                              spawn(fun() -> setup_journal(QueueName) end));
+                              spawn(fun() -> setup_journal(QueueName) end)),
+                     whereis(JournalNameAtom);
         ExistingJournalPid -> ExistingJournalPid
     end.
 
 
 setup_journal(QueueName) ->
-    File = file:open(journal_path(QueueName), [write, append]),
+    {ok, File} = file:open(journal_path(QueueName), [write, append]),
     manage_journal(File).
 
 

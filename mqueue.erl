@@ -3,34 +3,58 @@
 
 
 get_queue_pid(QueueName) ->
+    %% erqutils:debug("Getting pid for queue: ~p", [QueueName]),
     QueueNameAtom = list_to_atom("queue" ++ QueueName),
-    case whereis(QueueNameAtom) of
-        undefined -> register(QueueNameAtom,
-                              spawn(fun() -> setup_queue(QueueName) end));
-        ExistingQueuePid -> ExistingQueuePid
-    end.
+    Pid = case whereis(QueueNameAtom) of
+              undefined -> register(QueueNameAtom,
+                                    spawn(fun() -> setup_queue(QueueName) end)),
+                           whereis(QueueNameAtom);
+              ExistingQueuePid -> ExistingQueuePid
+          end,
+    %% erqutils:debug("Got pid: ~p", [Pid]),
+    Pid.
 
 
 setup_queue(QueueName) ->
     erqutils:debug("Setting up queue: ~p", [QueueName]),
-    manage_queue(QueueName,
-                 replay_journal_items(journal:replay(QueueName),
-                                      queue:new())).
+    Q = case journal:replay(QueueName) of
+            {ok, Items} ->
+                erqutils:debug("Got ~p journal items to replay.", [length(Items)]),
+                replay_journal_items(Items, queue:new());
+            {error, Reason} -> {error, Reason}
+        end,
+    manage_queue(QueueName, Q).
+
+
+replay_journal_item(Item, Q) ->
+    case Item of
+        {set, Data} ->
+            erqutils:debug("Replaying a set with data: ~p", [Data]),
+            queue:cons(Item, Q);
+        get ->
+            erqutils:debug("Replaying a get.", []),
+            case queue:is_empty(Q) of
+                true -> Q;
+                false -> queue:init(Q)
+            end;
+        Other ->
+            io:format("Got unexpected case in replay: ~p", [Other])
+    end.
 
 
 replay_journal_items([], Q) ->
     erqutils:debug("Done with replay.", []),
     Q;
 replay_journal_items([Head|Tail], Q) ->
-    erqutils:debug("Replaying ~p more journal items.", [lists:length(Tail) + 1]),
-    replay_journal_items(Tail, queue:cons(Q, Head)).
+    erqutils:debug("Replaying ~p more journal items.", [length(Tail) + 1]),
+    replay_journal_items(Tail, replay_journal_item(Head, Q)).
 
 
 manage_queue(QueueName, Q) ->
     %% erqutils:debug("Q is now length ~p and contains: ~p", [queue:len(Q), Q]),
     erqutils:debug("Q is now length ~p.", [queue:len(Q)]),
     receive
-        {add, Item, Pid} ->
+        {set, Item, Pid} ->
             NewQ = queue:cons(Item, Q),
             %% TODO: confirm success
             journal:enqueue(QueueName, Item),
@@ -57,14 +81,14 @@ manage_queue(QueueName, Q) ->
         Pid =/= -1 ->
             Pid ! Result
     end,
-    manage_queue(QueueName, NewQ).
+    mqueue:manage_queue(QueueName, NewQ).
 
 
 enqueue(QueueName, Data) ->
     erqutils:debug("mqueue:enqueue(~p, ~p)", [QueueName, Data]),
     QueuePid = get_queue_pid(QueueName),
     erqutils:debug("mqueue:enqueue :: got QueuePid: ~p", [QueuePid]),
-    QueuePid ! {add, Data, self()},
+    QueuePid ! {set, Data, self()},
     erqutils:debug("mqueue:enqueue :: waiting for response...", []),
     receive
         X -> X
