@@ -1,14 +1,32 @@
 Latest kestrel:
 
-Writing 1000 messages of size 512 took 0.443 seconds - 2257.902 msg/s - 1128.951 MB/s (with 0 errors)
-Reading 1000 messages took 0.439 seconds - 2277.962 m/s - 1138.981 MB/s
+Writing 1000 messages of size 512 took 0.443 seconds - 2257.902 msg/s - 1.128 MB/s (with 0 errors)
+Reading 1000 messages took 0.439 seconds - 2277.962 m/s - 1.138 MB/s
 Checking response correctness.
 Found 0 errors in 1000 responses.
 
 Non-persistent erq:
 
-Writing 1000 messages of size 512 took 0.224 seconds - 4459.208 msg/s - 2229.604 MB/s (with 0 errors)
-Reading 1000 messages took 0.197 seconds - 5084.375 m/s - 2542.187 MB/s
+Writing 1000 messages of size 512 took 0.224 seconds - 4459.208 msg/s - 2.229 MB/s (with 0 errors)
+Reading 1000 messages took 0.197 seconds - 5084.375 m/s - 2.542 MB/s
 Checking response correctness.
 Found 1 errors in 1000 responses.
 
+Current erq with persistence via writing erlang terms to a file:
+(This test was run on the same machine as the above to tests, but unfortunately the machine
+is processing other work right now as well, so I was not able to get a sample with no 
+interference.  I will update this when I can).
+
+Writing 1024 messages of size 512 took 0.326 seconds - 3141.488 msg/s - 1.534 MB/s (with 0 errors)
+Reading 1024 messages took 0.158 seconds - 6471.677 m/s - 3.160 MB/s
+Checking response correctness.
+Found 0 errors in 1024 responses.
+
+By comparison, here is a test of kestrel with the same load:
+
+Writing 1024 messages of size 512 took 0.656 seconds - 1561.905 msg/s - 0.763 MB/s (with 0 errors)
+Reading 1024 messages took 0.815 seconds - 1256.800 m/s - 0.614 MB/s
+Checking response correctness.
+Found 0 errors in 1024 responses.
+
+So it looks like we're still doing well.
