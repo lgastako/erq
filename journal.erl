@@ -20,12 +20,19 @@ dequeue(QueueName) ->
     end.
 
 
+journal_path(QueueName) ->
+    %% TODO: Un-hardcode path
+    "/tmp/erq_" ++ QueueName ++ ".ej".
+
+
 replay(QueueName) ->
+    {ok, File} = file:open(journal_path(QueueName), read),
     {ok, Terms} = file:consult(File),
+    file:close(File),
     Terms.
 
 
-get_queue_pid(QueueName) ->
+get_journal_pid(QueueName) ->
     JournalNameAtom = list_to_atom("journal:" ++ QueueName),
     case whereis(JournalNameAtom) of
         undefined -> register(JournalNameAtom,
@@ -34,28 +41,23 @@ get_queue_pid(QueueName) ->
     end.
 
 
-%% From p. 235 of Programming Erlang
-unconsult(File, L) ->
-    {ok, S} = file:open(File, write),
-    lists:foreach(fun(X) -> io:format(S, "~p.~n",[X]) end, L),
-    file:close(S).
-
-
-
 setup_journal(QueueName) ->
-    % Open the files,
-    File = file:open(File, [write, append])
+    File = file:open(journal_path(QueueName), [write, append]),
     manage_journal(File).
+
+
+write_term(File, Term) ->
+    io:format(File, "~p.~n", [Term]).
 
 
 manage_journal(File) ->
     receive
         {set, Data, ReplyPid} ->
-            write_op(File, {set, Data}),
+            write_term(File, {set, Data}),
             %% TODO: Actually check results
             ReplyPid ! ok;
         {get, ReplyPid} ->
-            write_op(File, get),
+            write_term(File, get),
             %% TODO: Actually check results
             ReplyPid ! ok;
         Other ->
