@@ -30,3 +30,152 @@ Checking response correctness.
 Found 0 errors in 1024 responses.
 
 So it looks like we're still doing well.
+
+Ok, I just tried running both several times in a row and got results
+like this for Kestrel (this was one of the better runs):
+
+Writing 1024 messages of size 512 took 0.198 seconds - 5179.696 msg/s - 2.529 MB/s (with 0 errors)
+Reading 1024 messages took 0.219 seconds - 4680.010 m/s - 2.285 MB/s
+Checking response correctness.
+Found 0 errors in 1024 responses.
+
+And results like this for erq (also one of the better runs):
+
+Writing 1024 messages of size 512 took 0.284 seconds - 3605.266 msg/s - 1.760 MB/s (with 0 errors)
+Reading 1024 messages took 0.154 seconds - 6647.928 m/s - 3.246 MB/s
+Checking response correctness.
+Found 0 errors in 1024 responses.
+
+My guess is that hotspot kicked in a bit, which is why Kestrel got
+faster (although this is still happening on a busy test system).  We
+are still beating kestrel consistently on reads, so that makes me
+think that once we optimize the writes to be binaries or something
+other than erlang-terms-as-text, we should be consistently beating
+even a fully primed hotspot'd Kesterl.
+
+FWIW, this is the Java version I am using:
+java version "1.6.0_06"
+Java(TM) SE Runtime Environment (build 1.6.0_06-b02)
+Java HotSpot(TM) 64-Bit Server VM (build 10.0-b22, mixed mode)
+
+The machine is a quad-core 2.4GHz Intel Xeon.
+
+This brings up another interesting point which is concurrency.  Here
+are the results of running two tests in parallel like so:
+
+./test.py -q queue1 > 1 & ./test.py -q queue2 > 2
+
+Concurrent test of erq, 1:
+
+Configuration:
+Queue name:  queue1
+Payload size:  512
+Number of messags:  1024
+
+Writing 1024 messages of size 512 took 0.453 seconds - 2262.394 msg/s - 1.105 MB/s (with 0 errors)
+Reading 1024 messages took 0.324 seconds - 3158.554 m/s - 1.542 MB/s
+Checking response correctness.
+Found 0 errors in 1024 responses.
+
+Configuration:
+Queue name:  queue2
+Payload size:  512
+Number of messags:  1024
+
+Writing 1024 messages of size 512 took 0.777 seconds - 1317.693 msg/s - 0.643 MB/s (with 0 errors)
+Reading 1024 messages took 0.279 seconds - 3672.859 m/s - 1.793 MB/s
+Checking response correctness.
+Found 0 errors in 1024 responses.
+
+Total write: 1.748 MB/s
+Total read: 3.335 MB/s
+
+
+Concurrent test of erq, 2:
+
+Configuration:
+Queue name:  queue1
+Payload size:  512
+Number of messags:  1024
+
+Writing 1024 messages of size 512 took 0.512 seconds - 2000.270 msg/s - 0.977 MB/s (with 0 errors)
+Reading 1024 messages took 0.440 seconds - 2327.283 m/s - 1.136 MB/s
+Checking response correctness.
+Found 0 errors in 1024 responses.
+
+Configuration:
+Queue name:  queue2
+Payload size:  512
+Number of messags:  1024
+
+Writing 1024 messages of size 512 took 0.606 seconds - 1689.014 msg/s - 0.825 MB/s (with 0 errors)
+Reading 1024 messages took 0.357 seconds - 2866.373 m/s - 1.400 MB/s
+Checking response correctness.
+Found 0 errors in 1024 responses.
+
+Total write: 1.802 MB/s
+Total read: 2.536 MB/s
+
+
+Both tests are basically in line with running a single test against a single queue at once.
+
+And the same two tests with Kestrel:
+
+Configuration:
+Queue name:  queue1
+Payload size:  512
+Number of messags:  1024
+
+Writing 1024 messages of size 512 took 0.512 seconds - 2000.270 msg/s - 0.977 MB/s (with 0 errors)
+Reading 1024 messages took 0.440 seconds - 2327.283 m/s - 1.136 MB/s
+Checking response correctness.
+Found 0 errors in 1024 responses.
+Configuration:
+Queue name:  queue1
+Payload size:  512
+Number of messags:  1024
+
+Writing 1024 messages of size 512 took 1.150 seconds - 890.690 msg/s - 0.435 MB/s (with 0 errors)
+Reading 1024 messages took 0.802 seconds - 1276.822 m/s - 0.623 MB/s
+Checking response correctness.
+Found 0 errors in 1024 responses.
+
+Total write: 1.412 MB/s
+Total read: 1.759 MB/s
+
+
+And again:
+
+Configuration:
+Queue name:  queue1
+Payload size:  512
+Number of messags:  1024
+
+Writing 1024 messages of size 512 took 1.727 seconds - 592.766 msg/s - 0.289 MB/s (with 0 errors)
+Reading 1024 messages took 0.613 seconds - 1670.874 m/s - 0.816 MB/s
+Checking response correctness.
+Found 0 errors in 1024 responses.
+
+Configuration:
+Queue name:  queue2
+Payload size:  512
+Number of messags:  1024
+
+Writing 1024 messages of size 512 took 1.747 seconds - 586.284 msg/s - 0.286 MB/s (with 0 errors)
+Reading 1024 messages took 0.561 seconds - 1826.784 m/s - 0.892 MB/s
+Checking response correctness.
+Found 0 errors in 1024 responses.
+
+Total read: 0.576 MB/s
+Total write: 1.708 MB/s
+
+
+It looks like Kestrel is going a lot slower handling two clients
+against two queues at once.  I am somewhat surprised by this, since it
+is mina driven and uses Scala actors and I would expect disk
+contention for the journal to be the biggest factor.  I can't rule out
+the possibility that the other processes running on this machine just
+happened to interfere more during my Kestrel tests than during my erq
+tests, so I will hold off on doing any further tests until I can have
+a nice clean test environment.
+
