@@ -1,9 +1,9 @@
--module(erqueue).
+-module(mqueue).
 -export([enqueue/2, dequeue/1]).
 
 
 get_queue_pid(QueueName) ->
-    QueueNameAtom = list_to_atom(QueueName),
+    QueueNameAtom = list_to_atom("queue" ++ QueueName),
     case whereis(QueueNameAtom) of
         undefined -> register(QueueNameAtom,
                               spawn(fun() -> manage_queue(queue:new()) end));
