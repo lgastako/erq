@@ -1,5 +1,5 @@
 -module(erqutils).
--export([debug/2, chomp/1]).
+-export([debug/2, chomp/1, unexpected_result/2]).
 
 %%-define(debug(_, _), ok).
 %%-define(debug(Format, Args), io:format("DEBUG: " ++ Format, Args), ok).
