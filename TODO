@@ -4,4 +4,6 @@
 - Implement persistence via amnesia.
 - Implement all the goofy extensions that Robey implemented.
 - Implement any applicable config options from Kestrel.
+- Add stats stuff from Kestrel.
+- Implement kestrel configuration stuff.  Listen address, max_items, etc.
  
