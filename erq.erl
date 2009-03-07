@@ -41,7 +41,7 @@ handle_set(Args, Socket) ->
     erqutils:debug("Reading data of size ~p.~n", [Size]),
     case read_fixed_data(Socket, Size) of
         {ok, Data} ->
-            case erqueue:enqueue(QueueName, Data) of
+            case mqueue:enqueue(QueueName, Data) of
                 ack -> "STORED\r\n";
                 {error, ErrorMessage} -> lists:flatten(io_lib:format("SERVER_ERROR ~p\r\n",
                                                                      [ErrorMessage]));
@@ -54,7 +54,7 @@ handle_set(Args, Socket) ->
 handle_get(Args) ->
     [QueueName] = Args,
     erqutils:debug("get requested from queue: ~p~n", [QueueName]),
-    case erqueue:dequeue(QueueName) of
+    case mqueue:dequeue(QueueName) of
         {ok, Data} ->
             lists:flatten(io_lib:format("VALUE ~s 0 ~.10B\r\n",
                                         [QueueName, length(Data)]) ++ Data ++ "\r\nEND\r\n");
