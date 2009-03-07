@@ -39,7 +39,12 @@ code seemed very high.  This project is an attempt to confirm my
 suspicions while getting more familiar with Erlang.
 
 
-Notes/TBContinued.. 
-===================
-mqueue - Memory queues.
-pqueue - Persistent queues.
+Status
+======
+
+So far I have implemented the basic protocol -- specifically just
+"get" and "set".  I have a python test client that works against
+Kestrel or erq (and presumably against starling as well, although I
+haven't tested it).  Currently I have implemented persistence by
+writing erlang terms to a file as text.  This is horribly inefficient
+and has slowed things way down but it works.
