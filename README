@@ -1,2 +1,45 @@
+erq - Lightweight message queues in erlang.
+
+
+Introduction/Background
+=======================
+
+erq is an attempt to clone Kestrel in Erlang.  Kestrel is a
+lightweight message queue written in Scala by Robey Pointer at
+twitter.  It is a clone of starling which was written in Ruby by
+Blaine Cooke at twitter previously.  One nifty feature of Starling
+(and therefore Kestrel (and therefore erq)) is that it shares an
+interface with memcache, so that any platform that has a memcache
+client (i.e. most) automatically have a client for accessing any of
+these platforms.
+
+You can find kestrel here:
+http://github.com/robey/kestrel/tree/master
+
+And starling here:
+http://github.com/starling/starling/tree/master
+
+I first became aware of Kestrel when it was posted to reddit:
+http://www.reddit.com/r/programming/comments/80ip6/kestrel_twitters_new_message_queue_written_in/
+
+The reddit thread links to this post by Robey Pointer, the author of Kestrel:
+http://robey.lag.net/2008/11/27/scarling-to-kestrel.html
+
+
+Motivation
+==========
+
+Between the posts and the README in github for Kestrel there seemed to
+be a divide between people that were impressed with the throughput
+and/or power-to-weight ratio of the code and those that were
+thoroughly unimpressed.  I don't know much about this type of
+software, having never written it before but my gut told me that
+better performance should be easy to acheive and that the lines of
+code seemed very high.  This project is an attempt to confirm my
+suspicions while getting more familiar with Erlang.
+
+
+Notes/TBContinued.. 
+===================
 mqueue - Memory queues.
 pqueue - Persistent queues.
