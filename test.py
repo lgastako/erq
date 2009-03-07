@@ -37,6 +37,16 @@ def main():
     if options.read_only and options.write_only:
         raise Exception("Cannot enable read_only and write_only at the same time.")
 
+    print "Configuration:"
+    print "Queue name: ", options.queue_name
+    print "Payload size: ", options.payload_size
+    print "Number of messags: ", options.num_messages
+    if options.read_only:
+        print "(Read only)"
+    if options.write_only:
+        print "(Write only)"
+    print
+
     if not options.read_only:
         errors = 0
         start = time.time()
