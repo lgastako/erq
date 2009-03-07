@@ -23,7 +23,7 @@ replay_journal_items([Head|Tail], Q) ->
 
 
 manage_queue(QueueName, Q) ->
-    %% erqutils:debug("Q is now length ~p and contains: ~p~n", [queue:len(Q), Q]),
+    %% erqutils:debug("Q is now length ~p and contains: ~p", [queue:len(Q), Q]),
     erqutils:debug("Q is now length ~p.", [queue:len(Q)]),
     receive
         {add, Item, Pid} ->
@@ -44,7 +44,7 @@ manage_queue(QueueName, Q) ->
                     Result = {ok, queue:last(Q)}
             end;
         Other ->
-            io:format("ERROR! Could not handle msg: ~p~n", [Other]),
+            io:format("ERROR! Could not handle msg: ~p", [Other]),
             Pid = -1,
             Result = {error, "could not handle msg"},
             NewQ = Q

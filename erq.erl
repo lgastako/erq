@@ -38,7 +38,7 @@ serve(Listen) ->
 handle_set(Args, Socket) ->
     [QueueName, _FlagsString, _ExpiryString, SizeString] = Args,
     Size = list_to_integer(SizeString),
-    erqutils:debug("Reading data of size ~p.~n", [Size]),
+    erqutils:debug("Reading data of size ~p.", [Size]),
     case read_fixed_data(Socket, Size) of
         {ok, Data} ->
             case pqueue:enqueue(QueueName, Data) of
@@ -53,7 +53,7 @@ handle_set(Args, Socket) ->
 
 handle_get(Args) ->
     [QueueName] = Args,
-    erqutils:debug("get requested from queue: ~p~n", [QueueName]),
+    erqutils:debug("get requested from queue: ~p", [QueueName]),
     case pqueue:dequeue(QueueName) of
         {ok, Data} ->
             lists:flatten(io_lib:format("VALUE ~s 0 ~.10B\r\n",
@@ -67,9 +67,9 @@ loop(Socket) ->
     case read_line_of_data(Socket) of
         {ok, StrWithNewline} ->
             Str = erqutils:chomp(StrWithNewline),
-            erqutils:debug("Server received: = ~p~n", [Str]),
+            erqutils:debug("Server received: = ~p", [Str]),
             [Command|Args] = string:tokens(Str, " "),
-            erqutils:debug("command: ~p~n", [Command]),
+            erqutils:debug("command: ~p", [Command]),
             Response = case Command of
                 "get" -> handle_get(Args);
                 "set" -> handle_set(Args, Socket);
@@ -78,7 +78,7 @@ loop(Socket) ->
             gen_tcp:send(Socket, Response),
             loop(Socket);
         {tcp_closed, Socket} ->
-            erqutils:debug("Server socket closed~n", []);
+            erqutils:debug("Server socket closed", []);
         {error, closed} -> {ok, closed};
         Thing ->
             io:format("Dunno whats going on: ~p~n", [Thing])
