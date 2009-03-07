@@ -33,7 +33,7 @@ replay_journal_item(Item, Q) ->
     case Item of
         {set, Data} ->
             erqutils:debug("Replaying a set with data: ~p", [Data]),
-            queue:cons(Item, Q);
+            queue:cons(Data, Q);
         get ->
             erqutils:debug("Replaying a get.", []),
             case queue:is_empty(Q) of
