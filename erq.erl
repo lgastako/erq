@@ -57,10 +57,16 @@ handle_get(Args) ->
     erqutils:debug("get requested from queue: ~p", [QueueName]),
     case mqueue:dequeue(QueueName) of
         {ok, Data} ->
+            erqutils:debug("Dequeued data: ~p", [Data]),
             lists:flatten(io_lib:format("VALUE ~s 0 ~.10B\r\n",
                                         [QueueName, length(Data)]) ++ Data ++ "\r\nEND\r\n");
-        {empty} -> "END\r\n";
-        _ -> "ERROR\r\n" %% should we use SERVER_ERROR with a message?
+        {empty} ->
+            erqutils:debug("Queue was empty, so nothing to dequeue.", []),
+            "END\r\n";
+        Result ->
+            erqutils:unexpected_result(Result, "mqueue:dequeue in handle_get"),
+            "ERROR\r\n"
+            %% should we use SERVER_ERROR with a message?
     end.
 
 
