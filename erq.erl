@@ -24,7 +24,11 @@ start() ->
 
 
 start(Port) ->
-    {ok, Listen} = gen_tcp:listen(Port, [list, {reuseaddr, true}, {packet, line}]),
+    {ok, Listen} = gen_tcp:listen(Port, [list,
+                                         {reuseaddr, true},
+                                         {packet, line},
+                                         {ip, {127, 0, 0, 1}}
+                                         ]),
     spawn(fun() -> serve(Listen) end),
     self().
 

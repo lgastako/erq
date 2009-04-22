@@ -48,3 +48,11 @@ Kestrel or erq (and presumably against starling as well, although I
 haven't tested it).  Currently I have implemented persistence by
 writing erlang terms to a file as text.  This is horribly inefficient
 and has slowed things way down but it works.
+
+
+Reference
+=========
+
+The memcache protocol:
+
+http://code.sixapart.com/svn/memcached/trunk/server/doc/protocol.txt
