@@ -3,8 +3,8 @@
 
 %%-define(debug(_, _), ok).
 %%-define(debug(Format, Args), io:format("DEBUG: " ++ Format, Args), ok).
-% debug(_, _) -> ok.
-debug(Format, Args) -> io:format("DEBUG: " ++ Format ++ "~n", Args), ok.
+debug(_, _) -> ok.
+% debug(Format, Args) -> io:format("DEBUG: " ++ Format ++ "~n", Args), ok.
 
 %% Remove trailing \r's and \n's from a string.  Probably better ways to do this in
 %% erlang, but for now, this works.

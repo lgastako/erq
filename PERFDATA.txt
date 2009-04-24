@@ -172,7 +172,7 @@ Total write: 1.708 MB/s
 
 It looks like Kestrel is going a lot slower handling two clients
 against two queues at once.  I am somewhat surprised by this, since it
-is mina driven and uses Scala actors and I would expect disk
+is MINA driven and uses Scala actors and I would expect disk
 contention for the journal to be the biggest factor.  I can't rule out
 the possibility that the other processes running on this machine just
 happened to interfere more during my Kestrel tests than during my erq
@@ -183,3 +183,19 @@ UPDATE: Oops, for the two concurrent tests of erq done above I did not
 pass the -smp option to the emulator.  I will correct this when I get
 a chance to do more tests in a clean environment.
 
+
+UPDATE (4/23/2009):
+
+Here are the numbers for the latest version of the code (with the recently
+added blocking functionality, although that code is not exercised in this
+test) with the -smp flag:
+
+Configuration:
+Queue name:  hurley
+Payload size:  512
+Number of messags:  1024
+
+Writing 1024 messages of size 512 took 0.255 seconds - 4010.184 msg/s - 1.958 MB/s (with 0 errors)
+Reading 1024 messages took 0.138 seconds - 7413.578 m/s - 3.620 MB/s
+Checking response correctness.
+Found 0 errors in 1024 responses.
