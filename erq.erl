@@ -1,5 +1,5 @@
 -module(erq).
--export([start/0, start/1]).
+-export([start/0, start/1, serve/1]).
 
 -define(DEFAULT_PORT, 2345).
 
@@ -30,13 +30,13 @@ start(Port) ->
                                          {packet, line},
                                          {ip, {127, 0, 0, 1}}
                                          ]),
-    spawn(fun() -> serve(Listen) end),
+    spawn(fun() -> erq:serve(Listen) end),
     self().
 
 
 serve(Listen) ->
     {ok, Socket} = gen_tcp:accept(Listen),
-    spawn(fun() -> serve(Listen) end),
+    spawn(fun() -> erq:serve(Listen) end),
     loop(Socket).
 
 

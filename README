@@ -70,6 +70,11 @@ fine, so who knows, maybe it'll stick around.   This was already my motivation
 for adding the blocking mode, so maybe it'll drive some new development
 too...
 
+Also I have updated the main module to export the serve function and call
+itself in a fully qualified manner, so it is now possible to hot swap in
+new code through the whole system.  This means you can turn debugging on
+and off or deploy a new version without stopping the system.
+
 
 Reference
 =========
