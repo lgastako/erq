@@ -3,6 +3,7 @@
 
 -define(DEFAULT_PORT, 2345).
 
+
 %% Read a line of data from the socket, for the control messages (get, set, etc).
 read_line_of_data(Socket) ->
     %% Active lets us poll for data so we can switch between line and buffer mode.
@@ -56,19 +57,40 @@ handle_set(Args, Socket) ->
     end.
 
 
+parse_queuename_with_optional_timeout(QueueNameWithOpts) ->
+    case string:tokens(QueueNameWithOpts, "/") of
+        [QueueName, TimeoutString] ->
+            % TODO: Check that it starts with t=, for now we'll assume it.
+            {Timeout, _Rest} = string:to_integer(string:substr(TimeoutString, 3)),
+            {QueueName, Timeout};
+        [QueueName] ->
+            Timeout = nonblocking,
+            {QueueName, Timeout};
+        Other ->
+            erqutils:unexpected_result(Other, "from string:token of queue name... maybe extra options?")
+    end.
+
+
 handle_get(Args) ->
-    [QueueName] = Args,
+    [QueueNameWithOpts] = Args,
+    {QueueName, Timeout} = parse_queuename_with_optional_timeout(QueueNameWithOpts),
+    case Timeout of
+        nonblocking ->
+            Result = mqueue:dequeue(QueueName);
+        _ ->
+            Result = mqueue:dequeue(QueueName, Timeout)
+    end,
     erqutils:debug("get requested from queue: ~p", [QueueName]),
-    case mqueue:dequeue(QueueName) of
+    case Result of
         {ok, Data} ->
             erqutils:debug("Dequeued data: ~p", [Data]),
             lists:flatten(io_lib:format("VALUE ~s 0 ~.10B\r\n",
                                         [QueueName, length(Data)]) ++ Data ++ "\r\nEND\r\n");
-        {empty} ->
+        empty ->
             erqutils:debug("Queue was empty, so nothing to dequeue.", []),
             "END\r\n";
-        Result ->
-            erqutils:unexpected_result(Result, "mqueue:dequeue in handle_get"),
+        Other ->
+            erqutils:unexpected_result(Other, "mqueue:dequeue in handle_get"),
             "ERROR\r\n"
             %% should we use SERVER_ERROR with a message?
     end.
