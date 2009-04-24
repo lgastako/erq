@@ -34,7 +34,7 @@ be a divide between people that were impressed with the throughput
 and/or power-to-weight ratio of the code and those that were
 thoroughly unimpressed.  I don't know much about this type of
 software, having never written it before but my gut told me that
-better performance should be easy to acheive and that the lines of
+better performance should be easy to achieve and that the lines of
 code seemed very high.  This project is an attempt to confirm my
 suspicions while getting more familiar with Erlang.
 
@@ -48,6 +48,27 @@ Kestrel or erq (and presumably against starling as well, although I
 haven't tested it).  Currently I have implemented persistence by
 writing erlang terms to a file as text.  This is horribly inefficient
 and has slowed things way down but it works.
+
+As of 4/23/2009 I have added basically blocking gets, using the same
+command format as Kestrel, specifically appending options (t for timeout
+in this case) to the queue name separate by a slash, e.g.
+
+	get foo/t=250
+
+...this will block up to 250ms waiting for an item from the "foo" queue.
+
+News
+====
+
+erq is in use on our production site at my day job.  I imagine we will
+end up switching to something more mature and fully featured like ZeroMQ,
+RabbitMQ, beanstalkd, or perhaps even Kestrel.  But, we needed a queueing
+system to offload long-running AJAX request processing from our webserver
+and erq was the easiest thing for me to get up and running quickly (since
+I know it inside and out).  So far it's handling everything we need just
+fine, so who knows, maybe it'll stick around.   This was already my motivation
+for adding the blocking mode, so maybe it'll drive some new development
+too...
 
 
 Reference
