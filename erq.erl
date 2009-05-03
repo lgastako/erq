@@ -1,5 +1,6 @@
 -module(erq).
 -export([start/0, start/1, serve/1]).
+-include_lib("erqconf.hrl").
 
 -define(DEFAULT_PORT, 2345).
 
@@ -20,16 +21,34 @@ read_fixed_data(Socket, Size) ->
     Result.
 
 
+update_config([], Conf) ->
+    Conf;
+update_config(Opts, Conf) ->
+    [Opt|RemainingOpts] = Opts,
+    {Name, Value} = Opt,
+    NewConf = case Name of
+        address -> Conf#erqconf{address=Value};
+        port -> Conf#erqconf{port=Value}
+    end,
+    update_config(RemainingOpts, NewConf).
+
+
+read_config(Filename) ->
+    {ok, Opts} = file:consult(Filename),
+    update_config(Opts, #erqconf{}).
+
+
 start() ->
-    start(?DEFAULT_PORT).
+    start("erq.conf").
 
-
-start(Port) ->
-    {ok, Listen} = gen_tcp:listen(Port, [list,
+start(ConfigFilename) ->
+    Config = read_config(ConfigFilename),
+    {ok, Listen} = gen_tcp:listen(Config#erqconf.port, [list,
                                          {reuseaddr, true},
                                          {packet, line},
-                                         {ip, {127, 0, 0, 1}}
+                                         {ip, Config#erqconf.address}
                                          ]),
+    io:format("Listening on ~p:~p", [Config#erqconf.address, Config#erqconf.port]),
     spawn(fun() -> erq:serve(Listen) end),
     self().
 
