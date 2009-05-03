@@ -70,7 +70,7 @@ Concurrent test of erq, 1:
 Configuration:
 Queue name:  queue1
 Payload size:  512
-Number of messags:  1024
+Number of messages messags:  1024
 
 Writing 1024 messages of size 512 took 0.453 seconds - 2262.394 msg/s - 1.105 MB/s (with 0 errors)
 Reading 1024 messages took 0.324 seconds - 3158.554 m/s - 1.542 MB/s
@@ -80,7 +80,7 @@ Found 0 errors in 1024 responses.
 Configuration:
 Queue name:  queue2
 Payload size:  512
-Number of messags:  1024
+Number of messages:  1024
 
 Writing 1024 messages of size 512 took 0.777 seconds - 1317.693 msg/s - 0.643 MB/s (with 0 errors)
 Reading 1024 messages took 0.279 seconds - 3672.859 m/s - 1.793 MB/s
@@ -96,7 +96,7 @@ Concurrent test of erq, 2:
 Configuration:
 Queue name:  queue1
 Payload size:  512
-Number of messags:  1024
+Number of messages:  1024
 
 Writing 1024 messages of size 512 took 0.512 seconds - 2000.270 msg/s - 0.977 MB/s (with 0 errors)
 Reading 1024 messages took 0.440 seconds - 2327.283 m/s - 1.136 MB/s
@@ -106,7 +106,7 @@ Found 0 errors in 1024 responses.
 Configuration:
 Queue name:  queue2
 Payload size:  512
-Number of messags:  1024
+Number of messages:  1024
 
 Writing 1024 messages of size 512 took 0.606 seconds - 1689.014 msg/s - 0.825 MB/s (with 0 errors)
 Reading 1024 messages took 0.357 seconds - 2866.373 m/s - 1.400 MB/s
@@ -124,7 +124,7 @@ And the same two tests with Kestrel:
 Configuration:
 Queue name:  queue1
 Payload size:  512
-Number of messags:  1024
+Number of messages:  1024
 
 Writing 1024 messages of size 512 took 0.512 seconds - 2000.270 msg/s - 0.977 MB/s (with 0 errors)
 Reading 1024 messages took 0.440 seconds - 2327.283 m/s - 1.136 MB/s
@@ -133,7 +133,7 @@ Found 0 errors in 1024 responses.
 Configuration:
 Queue name:  queue1
 Payload size:  512
-Number of messags:  1024
+Number of messages:  1024
 
 Writing 1024 messages of size 512 took 1.150 seconds - 890.690 msg/s - 0.435 MB/s (with 0 errors)
 Reading 1024 messages took 0.802 seconds - 1276.822 m/s - 0.623 MB/s
@@ -149,7 +149,7 @@ And again:
 Configuration:
 Queue name:  queue1
 Payload size:  512
-Number of messags:  1024
+Number of messages:  1024
 
 Writing 1024 messages of size 512 took 1.727 seconds - 592.766 msg/s - 0.289 MB/s (with 0 errors)
 Reading 1024 messages took 0.613 seconds - 1670.874 m/s - 0.816 MB/s
@@ -159,7 +159,7 @@ Found 0 errors in 1024 responses.
 Configuration:
 Queue name:  queue2
 Payload size:  512
-Number of messags:  1024
+Number of messages:  1024
 
 Writing 1024 messages of size 512 took 1.747 seconds - 586.284 msg/s - 0.286 MB/s (with 0 errors)
 Reading 1024 messages took 0.561 seconds - 1826.784 m/s - 0.892 MB/s
@@ -193,7 +193,7 @@ test) with the -smp flag:
 Configuration:
 Queue name:  hurley
 Payload size:  512
-Number of messags:  1024
+Number of messages:  1024
 
 Writing 1024 messages of size 512 took 0.255 seconds - 4010.184 msg/s - 1.958 MB/s (with 0 errors)
 Reading 1024 messages took 0.138 seconds - 7413.578 m/s - 3.620 MB/s

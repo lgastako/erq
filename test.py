@@ -40,7 +40,7 @@ def main():
     print "Configuration:"
     print "Queue name: ", options.queue_name
     print "Payload size: ", options.payload_size
-    print "Number of messags: ", options.num_messages
+    print "Number of messages: ", options.num_messages
     if options.read_only:
         print "(Read only)"
     if options.write_only:
