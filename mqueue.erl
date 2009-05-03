@@ -1,5 +1,5 @@
 -module(mqueue).
--export([enqueue/2, dequeue/1, dequeue/2]).
+-export([enqueue/2, dequeue/1, dequeue/2, return/2]).
 
 
 get_queue_pid(QueueName) ->
@@ -153,6 +153,33 @@ manage_queue_timeout(Q, BlockingClients, Pid) ->
     {empty, Q, NewBlockingClients}.
 
 
+% This function returns an item to the tail of the queue (for reprocessing
+% ASAP) after a reliable fetch operation failed to be confirmed.
+manage_queue_return(Q, _QueueName, [], Item) ->
+    % TODO: When we implement journal:snoc, removed underscore from _QueueName
+    erqutils:debug("got a queue set with no blocking consumers, so snoc'ing it...", []),
+    NewQ = queue:snoc(Q, Item),
+    %% TODO: confirm success
+    %% TODO: journal:snoc.
+    % journal:enqueue(QueueName, Item),
+    {ack, NewQ, []};
+manage_queue_return(Q, _QueueName, BlockingClients, Item) ->
+    erqutils:debug("got a queue set with a blocking consumer, so passing item on directly...", []),
+    {BlockedPid, TimerRef, NewBlockingClients} = pop_blocked_consumer(BlockingClients),
+    % Is there a race condition here where we get the ref above, then the timer fires, putting the {timeout, ...} message in the mailbox of this process,
+    % then we get another blocking get request from the same Pid which causes us to put this same BlockedPid back into the BlockingClients list, THEN
+    % we cancel the timer, and as a result eventually that mailbox message gets processed and this stops blocking early?  I am guessing the answer is yes.
+    % The best way I can think to solve this is to reate some sort of uniqnue ID that is stored for each request and the {timeout} only causes removal of
+    % the right Pid, Id combo.... so TODO: this.
+    % (For now it's probably extremely unlikely this would happen... it would depend on the consumer processing the response and asking for another
+    % ridiculously quickly).
+    timer:cancel(TimerRef),
+    % Immediately send the new item to the selected blocked client.
+    BlockedPid ! {ok, Item},
+    % ack the set command
+    {ack, Q, NewBlockingClients}.
+
+
 manage_queue(QueueName, Q, BlockingClients) ->
     %% erqutils:debug("Q is now length ~p and contains: ~p", [queue:len(Q), Q]),
     erqutils:debug("Q is now length ~p.", [queue:len(Q)]),
@@ -163,13 +190,15 @@ manage_queue(QueueName, Q, BlockingClients) ->
             {Result, NewQ, NewBlockingClients} = manage_queue_get_blocking(Q, QueueName, BlockingClients, Pid, BlockTime);
         {get, Pid} ->
             {Result, NewQ, NewBlockingClients} = manage_queue_get(Q, QueueName, BlockingClients);
+        {return, Pid, Item} ->
+            {Result, NewQ, NewBlockingClients} = manage_queue_return(Q, QueueName, BlockingClients, Item);
         {timeout, _, Pid} ->
-            erqutils:debug("got a timeout for Pid ~p", [Pid]),
             {Result, NewQ, NewBlockingClients} = manage_queue_timeout(Q, BlockingClients, Pid);
         UnexpectedResult ->
             Pid = -1,
             {Result, NewQ, NewBlockingClients} = manage_queue_unexpected_result(Q, BlockingClients, UnexpectedResult)
     end,
+    erqutils:debug("Done with receive in manage_queue.", []),
     case Result of
         deferred -> ok; % We just queued up a blocking listening
         error -> ok; % We have no pid to reply to
@@ -182,9 +211,7 @@ manage_queue(QueueName, Q, BlockingClients) ->
 enqueue(QueueName, Data) ->
     erqutils:debug("mqueue:enqueue(~p, ~p)", [QueueName, Data]),
     QueuePid = get_queue_pid(QueueName),
-    erqutils:debug("mqueue:enqueue :: got QueuePid: ~p", [QueuePid]),
     QueuePid ! {set, Data, self()},
-    erqutils:debug("mqueue:enqueue :: waiting for response...", []),
     receive
         X -> X
     end.
@@ -208,4 +235,11 @@ dequeue(QueueName, Timeout) ->
     % never happen, except maybe in cases of load so extreme we're screwed
     % anyway... and if there are bugs, the solution is to fix the bugs, not
     % to have a failsafe....
+    end.
+
+return(QueueName, Item) ->
+    QueuePid = get_queue_pid(QueueName),
+    QueuePid ! {return, self(), Item},
+    receive
+        X -> X
     end.

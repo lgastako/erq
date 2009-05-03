@@ -37,7 +37,7 @@ start(Port) ->
 serve(Listen) ->
     {ok, Socket} = gen_tcp:accept(Listen),
     spawn(fun() -> erq:serve(Listen) end),
-    loop(Socket).
+    loop(Socket, none).
 
 
 handle_set(Args, Socket) ->
@@ -57,23 +57,38 @@ handle_set(Args, Socket) ->
     end.
 
 
-parse_queuename_with_optional_timeout(QueueNameWithOpts) ->
-    case string:tokens(QueueNameWithOpts, "/") of
-        [QueueName, TimeoutString] ->
-            % TODO: Check that it starts with t=, for now we'll assume it.
-            {Timeout, _Rest} = string:to_integer(string:substr(TimeoutString, 3)),
-            {QueueName, Timeout};
-        [QueueName] ->
-            Timeout = nonblocking,
-            {QueueName, Timeout};
-        Other ->
-            erqutils:unexpected_result(Other, "from string:token of queue name... maybe extra options?")
+is_open_requested(Args) ->
+    lists:any(fun(X) -> X == "open" end, Args).
+
+
+is_close_requested(Args) ->
+   lists:any(fun(X) -> X == "close" end, Args).
+
+
+get_timeout_from_args([]) ->
+    nonblocking;
+get_timeout_from_args(Args) ->
+    [First|Rest] = Args,
+    erqutils:debug("First/Rest: ~p/~p", [First,Rest]),
+    case string:sub_string(First, 1, 2) of
+        "t=" -> 
+            {Timeout, _Rest} = string:to_integer(string:substr(First, 3)),
+            Timeout;
+        _ ->
+            get_timeout_from_args(Rest)
     end.
 
 
-handle_get(Args) ->
-    [QueueNameWithOpts] = Args,
-    {QueueName, Timeout} = parse_queuename_with_optional_timeout(QueueNameWithOpts),
+parse_queuename_with_args(QueueNameWithArgs) ->
+    [QueueName|Args] = string:tokens(QueueNameWithArgs, "/"),
+    {QueueName, is_open_requested(Args), is_close_requested(Args), get_timeout_from_args(Args)}.
+
+
+handle_get(_QueueName, false, true, _Timeout, _) ->
+    {"END\r\n", none};
+handle_get(_QueueName, true, false, _Timeout, CheckedOutMessage) when CheckedOutMessage =/= none ->
+    {"ERROR must close old message before opening a new one\r\n", CheckedOutMessage}; % TODO: Is this a legit way to report the specific error?
+handle_get(QueueName, OpenRequested, CloseRequested, Timeout, CheckedOutMessage) ->
     case Timeout of
         nonblocking ->
             Result = mqueue:dequeue(QueueName);
@@ -84,35 +99,69 @@ handle_get(Args) ->
     case Result of
         {ok, Data} ->
             erqutils:debug("Dequeued data: ~p", [Data]),
-            lists:flatten(io_lib:format("VALUE ~s 0 ~.10B\r\n",
+            case OpenRequested of
+                true ->
+                    NewCheckedOutMessage = {QueueName, Data};
+                false ->
+                    case CloseRequested of
+                        true -> NewCheckedOutMessage = none;
+                        false -> NewCheckedOutMessage = CheckedOutMessage
+                    end
+            end,
+            Response = lists:flatten(io_lib:format("VALUE ~s 0 ~.10B\r\n",
                                         [QueueName, length(Data)]) ++ Data ++ "\r\nEND\r\n");
         empty ->
             erqutils:debug("Queue was empty, so nothing to dequeue.", []),
-            "END\r\n";
+            NewCheckedOutMessage = CheckedOutMessage,
+            Response = "END\r\n";
         Other ->
             erqutils:unexpected_result(Other, "mqueue:dequeue in handle_get"),
-            "ERROR\r\n"
+            NewCheckedOutMessage = CheckedOutMessage,
+            Response = "ERROR\r\n"
             %% should we use SERVER_ERROR with a message?
-    end.
+    end,
+    {Response, NewCheckedOutMessage}.
 
 
-loop(Socket) ->
+handle_get(Args, CheckedOutMessage) ->
+    [QueueNameWithArgs] = Args,
+    {QueueName, OpenRequested, CloseRequested, Timeout} = parse_queuename_with_args(QueueNameWithArgs),
+    erqutils:debug("QueueName/OpenRequested/CloseRequested/Timeout: ~p/~p/~p/~p", [QueueName, OpenRequested, CloseRequested, Timeout]),
+    handle_get(QueueName, OpenRequested, CloseRequested, Timeout, CheckedOutMessage).
+
+
+return_checked_out_message_if_necessary(none) -> ok;
+return_checked_out_message_if_necessary(CheckedOutMessage) ->
+    {QueueName, Data} = CheckedOutMessage,
+    mqueue:return(QueueName, Data).
+
+
+loop(Socket, CheckedOutMessage) ->
     case read_line_of_data(Socket) of
         {ok, StrWithNewline} ->
             Str = erqutils:chomp(StrWithNewline),
             erqutils:debug("Server received: = ~p", [Str]),
             [Command|Args] = string:tokens(Str, " "),
             erqutils:debug("command: ~p", [Command]),
-            Response = case Command of
-                "get" -> handle_get(Args);
-                "set" -> handle_set(Args, Socket);
-                _ -> "ERROR\r\n"
+            case Command of
+                "get" -> 
+                    {Response, NewCheckedOutMessage} = handle_get(Args, CheckedOutMessage);
+                "set" ->
+                    NewCheckedOutMessage = CheckedOutMessage,
+                    Response = handle_set(Args, Socket);
+                _ ->
+                    NewCheckedOutMessage = CheckedOutMessage,
+                    Response = "ERROR\r\n"
             end,
             gen_tcp:send(Socket, Response),
-            loop(Socket);
+            loop(Socket, NewCheckedOutMessage);
         {tcp_closed, Socket} ->
+            return_checked_out_message_if_necessary(CheckedOutMessage),
             erqutils:debug("Server socket closed", []);
-        {error, closed} -> {ok, closed};
-        Thing ->
-            io:format("Dunno whats going on: ~p~n", [Thing])
+        {error, closed} ->
+            return_checked_out_message_if_necessary(CheckedOutMessage),
+            {ok, closed};
+        Other ->
+            return_checked_out_message_if_necessary(CheckedOutMessage),
+            io:format("Dunno whats going on: ~p~n", [Other])
     end.
