@@ -1,9 +1,8 @@
-- Switch persistence to something faster.
-- Get protocol working identically to kestrel so I can test against both.
-  - So far so good.
-- Implement all the goofy extensions that Robey implemented.
-  - /t=N blocking requests implemented... now just need the rest.
-- Add an option to block forever.
+- Capture returned items in the journal.
 - Implement any applicable configuration options from Kestrel.
 - Add stats stuff from Kestrel.
 - Implement kestrel configuration stuff.  Listen address, max_items, etc.
+- Add an option to block forever.
+- Switch persistence to something faster.
+- Handle growth of journals better.
+- Handle bug where it disconnects when you hit return... what should it do? What does Kestrel do?
